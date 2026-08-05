@@ -2,7 +2,7 @@
 
 A lightweight, browser-based tool for building and editing UX personas through a guided, multi-step form — no install, no backend, no account. Fill it out, download a clean JSON file, and use it anywhere: paste it into an LLM for a heuristic review, hand it to a design team, or version it alongside your research docs.
 
-**Try it live →[Persona Creator](https://pjordan-bch.github.io/persona_creator/)** *(add your GitHub Pages URL here once deployed)*
+**Try it live →[Persona Creator](https://pjordan-bch.github.io/persona_creator/)**
 
 ## Why this exists
 
