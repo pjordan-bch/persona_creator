@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JSON Persona Tool</title>
+<style>
+  :root{
+    --bg:#0A1613;
+    --panel:#111F1A;
+    --panel-alt:#0C1815;
+    --border:#22392F;
+    --border-strong:#2F4E41;
+    --text:#E6F5EC;
+    --text-dim:#8FB6A3;
+    --text-faint:#5A7A6C;
+    --accent:#33D17E;
+    --accent-strong:#1FA866;
+    --accent-soft:#173327;
+    --on-accent:#04140C;
+    --white:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Century Gothic','Futura','Trebuchet MS',sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:40px 16px;
+  }
+  .wrap{ width:100%; max-width:760px; }
+  .eyebrow{
+    font-size:12px; font-weight:bold; letter-spacing:2px;
+    color:var(--accent); text-transform:uppercase; margin:0 0 6px 0;
+  }
+  h1{
+    font-size:32px; font-weight:bold; color:var(--text);
+    margin:0 0 6px 0;
+  }
+  .subtitle{ color:var(--text-dim); font-size:15px; margin:0 0 28px 0; }
+
+  /* Stepper */
+  .stepper{
+    display:flex; align-items:flex-start; justify-content:space-between;
+    margin-bottom:28px; gap:2px;
+  }
+  .step-item{ flex:1; text-align:center; position:relative; }
+  .step-dot{
+    width:30px; height:30px; border-radius:50%;
+    background:var(--panel-alt); color:var(--text-dim);
+    border:1.5px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:bold; margin:0 auto 6px auto;
+    transition:background .2s, color .2s;
+  }
+  .step-item.active .step-dot{ background:var(--accent); color:var(--on-accent); border-color:var(--accent); }
+  .step-item.done .step-dot{ background:var(--border-strong); color:var(--text); border-color:var(--border-strong); }
+  .step-label{ font-size:10.5px; color:var(--text-dim); line-height:1.3; }
+  .step-item.active .step-label{ color:var(--text); font-weight:bold; }
+  .step-line{
+    position:absolute; top:15px; left:-50%; width:100%; height:2px;
+    background:var(--border); z-index:-1;
+  }
+  .step-item:first-child .step-line{ display:none; }
+  .step-item.done .step-line, .step-item.active .step-line{ background:var(--accent-strong); }
+
+  /* Card */
+  .card{
+    background:var(--panel); border-radius:14px; padding:32px;
+    box-shadow:0 0 0 1px var(--border), 0 10px 34px rgba(0,0,0,0.55);
+  }
+  .card h2{ font-size:20px; color:var(--text); margin:0 0 4px 0; }
+  .card .hint{ font-size:13px; color:var(--accent); font-style:italic; margin:0 0 22px 0; }
+
+  .field{ margin-bottom:20px; }
+  .field label{
+    display:block; font-size:11px; font-weight:bold; letter-spacing:.5px;
+    color:var(--text-dim); text-transform:uppercase; margin-bottom:6px;
+  }
+  .field .example{ font-size:12px; color:var(--text-faint); margin-top:4px; }
+  input[type="text"], textarea{
+    width:100%; border:1.5px solid var(--border); border-radius:8px;
+    padding:10px 12px; font-family:inherit; font-size:14px; color:var(--text);
+    background:var(--panel-alt); resize:vertical;
+  }
+  input[type="text"]:focus, textarea:focus{ outline:none; border-color:var(--accent); }
+  textarea{ min-height:64px; }
+
+  /* Age slider */
+  .slider-row{ display:flex; align-items:center; gap:12px; }
+  .age-slider{
+    flex:1; accent-color:var(--accent); height:6px; cursor:pointer;
+  }
+  .age-slider:disabled{ opacity:0.3; cursor:not-allowed; }
+  .slider-value{
+    min-width:92px; text-align:right; font-size:14px; font-weight:bold; color:var(--text);
+    background:var(--panel-alt); border:1.5px solid var(--border); border-radius:8px;
+    padding:6px 10px;
+  }
+  .na-btn{
+    flex-shrink:0; padding:8px 14px; border-radius:8px;
+    border:1.5px solid var(--border); background:var(--panel-alt); color:var(--text-dim);
+    font-family:inherit; font-size:12.5px; font-weight:bold; cursor:pointer;
+    transition:background .15s, color .15s, border-color .15s;
+  }
+  .na-btn:hover{ border-color:var(--accent); }
+  .na-btn.selected{ background:var(--accent); color:var(--on-accent); border-color:var(--accent); }
+
+  /* Landing screen */
+  .upload-label{
+    display:block; text-align:center; background:var(--panel); color:var(--text-dim);
+    border:1.5px solid var(--border); border-radius:8px; padding:11px 24px;
+    font-family:inherit; font-weight:bold; font-size:14px; cursor:pointer;
+  }
+  .upload-label:hover{ border-color:var(--accent); color:var(--text); }
+
+  /* Button-group select (Low/Moderate/High style) */
+  .btn-group{ display:flex; gap:8px; flex-wrap:wrap; }
+  .opt-btn{
+    flex:1; min-width:110px; padding:10px 8px; border-radius:8px;
+    border:1.5px solid var(--border); background:var(--panel-alt); color:var(--text-dim);
+    font-family:inherit; font-size:13px; font-weight:bold; cursor:pointer;
+    transition:background .15s, color .15s, border-color .15s;
+  }
+  .opt-btn:hover{ border-color:var(--accent); }
+  .opt-btn.selected{ background:var(--accent); color:var(--on-accent); border-color:var(--accent); }
+
+  /* Dynamic list (goals) */
+  .list-add{ display:flex; gap:8px; margin-bottom:10px; }
+  .list-add input{ flex:1; }
+  .add-btn{
+    background:var(--accent-strong); color:var(--white); border:none; border-radius:8px;
+    padding:10px 18px; font-family:inherit; font-weight:bold; font-size:13px; cursor:pointer;
+  }
+  .add-btn:hover{ background:var(--accent); color:var(--on-accent); }
+  ul.chip-list{ list-style:none; margin:0; padding:0; }
+  ul.chip-list li{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:10px;
+    background:var(--accent-soft); border-radius:8px; padding:10px 12px; margin-bottom:8px;
+    font-size:13.5px; color:var(--text);
+  }
+  ul.chip-list li button{
+    background:none; border:none; color:var(--accent); font-weight:bold;
+    cursor:pointer; font-size:16px; line-height:1; flex-shrink:0;
+  }
+  .empty-note{ font-size:13px; color:var(--text-faint); font-style:italic; }
+
+  /* Nav */
+  .nav-row{ display:flex; justify-content:space-between; margin-top:26px; }
+  .nav-btn{
+    padding:11px 24px; border-radius:8px; font-family:inherit; font-weight:bold;
+    font-size:14px; cursor:pointer; border:none;
+  }
+  .btn-back{ background:var(--panel); color:var(--text-dim); border:1.5px solid var(--border); }
+  .btn-back:hover{ border-color:var(--accent); }
+  .btn-back:disabled{ opacity:0.35; cursor:not-allowed; }
+  .btn-next{ background:var(--accent); color:var(--on-accent); }
+  .btn-next:hover{ background:var(--accent-strong); }
+
+  /* Review */
+  .review-section{ margin-bottom:18px; }
+  .review-section h3{
+    font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--text-dim);
+    margin:0 0 8px 0; border-bottom:1px solid var(--border); padding-bottom:6px;
+  }
+  .review-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; }
+  .review-item .k{ font-size:10.5px; color:var(--text-dim); font-weight:bold; text-transform:uppercase; }
+  .review-item .v{ font-size:13.5px; color:var(--text); }
+  .review-quote{
+    background:var(--accent-soft); color:var(--text); border-radius:8px; padding:14px 16px;
+    font-style:italic; font-size:14px; margin-bottom:18px; border-left:3px solid var(--accent);
+  }
+  .download-btn{
+    width:100%; background:var(--accent); color:var(--on-accent); border:none;
+    border-radius:8px; padding:14px; font-family:inherit; font-weight:bold; font-size:15px;
+    cursor:pointer; margin-top:8px;
+  }
+  .download-btn:hover{ background:var(--accent-strong); }
+  .restart-link{
+    display:block; text-align:center; margin-top:14px; font-size:12.5px;
+    color:var(--text-dim); cursor:pointer; text-decoration:underline;
+  }
+  .restart-link:hover{ color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>JSON Persona Tool</h1>
+  <p class="subtitle">Answer a few prompts to generate a sample consumer/patient persona, ready to download as JSON.</p>
+
+  <div class="stepper" id="stepper"></div>
+
+  <div class="card" id="cardArea"></div>
+</div>
+
+<script>
+const STEPS = ["Basics","Goals","Identity","Profile","Barriers","Access Goals","Review"];
+
+let data = {
+  persona_name: "",
+  descriptor: "",
+  representative_quote: "",
+  goals_and_motivations: [],
+  identity_snapshot: {
+    age_of_patient: "8 years old", age_of_caregiver: "38 years old", relationship_to_patient: "",
+    geographic_scope: "", patient_tenure: "", life_stage: "",
+    family_context: "", primary_language: "", specialties_visited: "",
+    average_visits_per_month: ""
+  },
+  access_literacy_complexity_profile: {
+    level_of_digital_engagement: "",
+    care_complexity: "",
+    literacy_profile: { health_literacy: "", digital_literacy: "", reading_literacy: "" },
+    access_barriers: { physical: "", non_physical: "" },
+    resource_constraints: "",
+    goals_related_to_access_and_complexity: []
+  }
+};
+
+let current = 0;
+let started = false;
+
+function renderLanding(){
+  document.getElementById('stepper').innerHTML = '';
+  const card = document.getElementById('cardArea');
+  card.innerHTML = `
+    <h2>Get Started</h2>
+    <p class="hint">Create a brand-new sample persona, or upload an existing persona JSON to edit it.</p>
+    <div style="display:flex; flex-direction:column; gap:12px; margin-top:18px;">
+      <button type="button" class="nav-btn btn-next" style="width:100%;" onclick="startFresh()">Create New Persona</button>
+      <label class="upload-label" for="uploadInput">Upload Existing Persona (JSON)</label>
+      <input type="file" id="uploadInput" accept="application/json,.json" style="display:none" onchange="handleUpload(event)">
+    </div>
+    <p id="uploadError" style="color:#ff8a80; font-size:13px; margin-top:12px; display:none;"></p>
+  `;
+}
+
+function startFresh(){
+  started = true;
+  current = 0;
+  renderStep();
+}
+
+function handleUpload(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const parsed = JSON.parse(e.target.result);
+      mergeIntoData(parsed);
+      started = true;
+      current = 0;
+      renderStep();
+    } catch(err){
+      const errEl = document.getElementById('uploadError');
+      errEl.style.display = 'block';
+      errEl.textContent = "Couldn't read that file \u2014 make sure it's a valid persona JSON.";
+    }
+  };
+  reader.readAsText(file);
+}
+
+// Loosely merges an uploaded JSON into the app's data shape, ignoring unknown
+// keys and falling back to blanks for anything missing so older/partial exports still load.
+function mergeIntoData(parsed){
+  data.persona_name = parsed.persona_name || "";
+  data.descriptor = parsed.descriptor || "";
+  data.representative_quote = parsed.representative_quote || "";
+  data.goals_and_motivations = Array.isArray(parsed.goals_and_motivations) ? parsed.goals_and_motivations.slice() : [];
+
+  const idn = parsed.identity_snapshot || {};
+  Object.keys(data.identity_snapshot).forEach(k=>{
+    data.identity_snapshot[k] = idn[k] || "";
+  });
+
+  const p = parsed.access_literacy_complexity_profile || {};
+  data.access_literacy_complexity_profile.level_of_digital_engagement = p.level_of_digital_engagement || "";
+  data.access_literacy_complexity_profile.care_complexity = p.care_complexity || "";
+  const lit = p.literacy_profile || {};
+  data.access_literacy_complexity_profile.literacy_profile.health_literacy = lit.health_literacy || "";
+  data.access_literacy_complexity_profile.literacy_profile.digital_literacy = lit.digital_literacy || "";
+  data.access_literacy_complexity_profile.literacy_profile.reading_literacy = lit.reading_literacy || "";
+  const ab = p.access_barriers || {};
+  data.access_literacy_complexity_profile.access_barriers.physical = ab.physical || "";
+  data.access_literacy_complexity_profile.access_barriers.non_physical = ab.non_physical || "";
+  data.access_literacy_complexity_profile.resource_constraints = p.resource_constraints || "";
+  data.access_literacy_complexity_profile.goals_related_to_access_and_complexity =
+    Array.isArray(p.goals_related_to_access_and_complexity) ? p.goals_related_to_access_and_complexity.slice() : [];
+}
+
+function renderStepper(){
+  const el = document.getElementById('stepper');
+  el.innerHTML = STEPS.map((label,i)=>{
+    let cls = 'step-item';
+    if(i < current) cls += ' done';
+    if(i === current) cls += ' active';
+    return `<div class="${cls}">
+      <div class="step-line"></div>
+      <div class="step-dot">${i < current ? '\u2713' : i+1}</div>
+      <div class="step-label">${label}</div>
+    </div>`;
+  }).join('');
+}
+
+function fieldHTML(id,label,value,example,type){
+  type = type || 'text';
+  if(type==='textarea'){
+    return `<div class="field">
+      <label for="${id}">${label}</label>
+      <textarea id="${id}" oninput="updateField('${id}', this.value)">${escapeHtml(value)}</textarea>
+      <div class="example">e.g., ${example}</div>
+    </div>`;
+  }
+  return `<div class="field">
+    <label for="${id}">${label}</label>
+    <input type="text" id="${id}" value="${escapeHtml(value)}" oninput="updateField('${id}', this.value)">
+    <div class="example">e.g., ${example}</div>
+  </div>`;
+}
+
+function escapeHtml(s){
+  return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// generic path-based field updater, path like "identity_snapshot.age_of_patient"
+function updateField(path, value){
+  const parts = path.split('.');
+  let obj = data;
+  for(let i=0;i<parts.length-1;i++){ obj = obj[parts[i]]; }
+  obj[parts[parts.length-1]] = value;
+}
+
+function getField(path){
+  const parts = path.split('.');
+  let obj = data;
+  for(let i=0;i<parts.length;i++){ obj = obj[parts[i]]; }
+  return obj;
+}
+
+function optionGroup(path, options, colWidth){
+  const current = getField(path);
+  return `<div class="btn-group">${options.map(opt=>{
+    const sel = current === opt ? 'selected' : '';
+    return `<button type="button" class="opt-btn ${sel}" onclick="selectOption('${path}','${opt}')">${opt}</button>`;
+  }).join('')}</div>`;
+}
+
+function selectOption(path, value){
+  updateField(path, value);
+  renderStep();
+}
+
+// Age slider: stores a formatted "N years old" string in data, styled with the
+// native range input's accent-color so it matches the theme with no extra JS widget.
+// opts.maxPlusLabel: display "<max>+ years old" once the slider hits its max (for patient age, 18+).
+// opts.allowNA: render an "N/A" toggle beside the slider (for caregiver age), which
+// stores the literal string "N/A" and disables the slider until toggled off again.
+function ageSlider(path, label, min, max, opts){
+  opts = opts || {};
+  const raw = getField(path) || "";
+  const isNA = !!opts.allowNA && raw === "N/A";
+  let num = parseInt(raw, 10);
+  if(isNaN(num)) num = min + Math.round((max - min) / 2);
+  const idSafe = path.replace(/\./g,'_');
+  const displayVal = isNA ? 'N/A' : ((opts.maxPlusLabel && num >= max) ? (max + '+ years old') : (num + ' years old'));
+  const naButton = opts.allowNA
+    ? `<button type="button" class="na-btn ${isNA ? 'selected' : ''}" onclick="toggleNA('${path}', ${min}, ${max})">N/A</button>`
+    : '';
+  return `<div class="field">
+    <label>${label}</label>
+    <div class="slider-row">
+      <input type="range" min="${min}" max="${max}" value="${num}" class="age-slider" id="${idSafe}_slider" ${isNA ? 'disabled' : ''}
+        oninput="onAgeSlide('${path}', this.value, '${idSafe}_val', ${!!opts.maxPlusLabel}, ${max})">
+      <span class="slider-value" id="${idSafe}_val">${displayVal}</span>
+      ${naButton}
+    </div>
+  </div>`;
+}
+
+function onAgeSlide(path, value, labelId, maxPlus, max){
+  const v = parseInt(value, 10);
+  const text = (maxPlus && v >= max) ? (max + '+ years old') : (v + ' years old');
+  updateField(path, text);
+  const el = document.getElementById(labelId);
+  if(el) el.textContent = text;
+}
+
+function toggleNA(path, min, max){
+  const cur = getField(path);
+  if(cur === 'N/A'){
+    const mid = min + Math.round((max - min) / 2);
+    updateField(path, mid + ' years old');
+  } else {
+    updateField(path, 'N/A');
+  }
+  renderStep();
+}
+
+function dynamicList(path, placeholderText, inputId){
+  const arr = getField(path);
+  const items = arr.length ? arr.map((item,i)=>`
+    <li><span>${escapeHtml(item)}</span><button type="button" onclick="removeListItem('${path}',${i})">&times;</button></li>
+  `).join('') : `<p class="empty-note">No items added yet.</p>`;
+  return `
+    <div class="list-add">
+      <input type="text" id="${inputId}" placeholder="${placeholderText}">
+      <button type="button" class="add-btn" onclick="addListItem('${path}','${inputId}')">Add</button>
+    </div>
+    <ul class="chip-list">${items}</ul>
+  `;
+}
+
+function addListItem(path, inputId){
+  const input = document.getElementById(inputId);
+  const val = input.value.trim();
+  if(!val) return;
+  getFieldParentPush(path, val);
+  input.value = "";
+  renderStep();
+}
+
+function getFieldParentPush(path, val){
+  const parts = path.split('.');
+  let obj = data;
+  for(let i=0;i<parts.length-1;i++){ obj = obj[parts[i]]; }
+  obj[parts[parts.length-1]].push(val);
+}
+
+function removeListItem(path, idx){
+  const arr = getField(path);
+  arr.splice(idx,1);
+  renderStep();
+}
+
+function renderStep(){
+  renderStepper();
+  const card = document.getElementById('cardArea');
+  let html = "";
+
+  if(current === 0){
+    html = `
+      <h2>Let's start with the basics</h2>
+      <p class="hint">Who is this persona, in one line?</p>
+      ${fieldHTML('persona_name','Persona Name', data.persona_name, 'Nomar')}
+      ${fieldHTML('descriptor','One-line Descriptor', data.descriptor, 'International family coordinating specialty care from abroad')}
+      ${fieldHTML('representative_quote','Representative Quote', data.representative_quote, "We fly in for every visit, so I need each one to count \u2014 no repeat tests, no wasted trips.", 'textarea')}
+    `;
+  } else if(current === 1){
+    html = `
+      <h2>Goals & Motivations</h2>
+      <p class="hint">What is this persona trying to accomplish? Add one at a time.</p>
+      ${dynamicList('goals_and_motivations','e.g., Consolidate lab work and imaging into a single visit','goalInput')}
+    `;
+  } else if(current === 2){
+    html = `
+      <h2>Identity Snapshot</h2>
+      <p class="hint">Core facts about the patient and caregiver.</p>
+      ${ageSlider('identity_snapshot.age_of_patient','Age of Patient', 0, 18, {maxPlusLabel:true})}
+      ${ageSlider('identity_snapshot.age_of_caregiver','Age of Caregiver', 18, 90, {allowNA:true})}
+      ${fieldHTML('identity_snapshot.relationship_to_patient','Relationship to Patient', data.identity_snapshot.relationship_to_patient, 'Parent / Guardian / Self (teen) / Other')}
+      <div class="field"><label>Geographic Scope</label>${optionGroup('identity_snapshot.geographic_scope',['Local','National','International'])}</div>
+      <div class="field"><label>Patient Tenure</label>${optionGroup('identity_snapshot.patient_tenure',['New','Long-time','One-time'])}</div>
+      ${fieldHTML('identity_snapshot.life_stage','Life Stage', data.identity_snapshot.life_stage, 'Teen patient / Adult patient')}
+      ${fieldHTML('identity_snapshot.family_context','Family Context', data.identity_snapshot.family_context, 'Single child / Multiple kids in care')}
+      ${fieldHTML('identity_snapshot.primary_language','Primary Language', data.identity_snapshot.primary_language, 'English, Portuguese, Mandarin')}
+      ${fieldHTML('identity_snapshot.specialties_visited','Specialties Visited', data.identity_snapshot.specialties_visited, 'Endocrinology, Nutrition, Behavioral Health')}
+      ${fieldHTML('identity_snapshot.average_visits_per_month','Average Visits per Month', data.identity_snapshot.average_visits_per_month, 'Quarterly (every 3 months)')}
+    `;
+  } else if(current === 3){
+    const p = data.access_literacy_complexity_profile;
+    html = `
+      <h2>Access, Literacy & Complexity Profile</h2>
+      <p class="hint">Tap the option that best fits this persona.</p>
+      <div class="field"><label>Level of Digital Engagement</label>${optionGroup('access_literacy_complexity_profile.level_of_digital_engagement',['Low','Moderate','High'])}</div>
+      <div class="field"><label>Care Complexity</label>${optionGroup('access_literacy_complexity_profile.care_complexity',['Single Condition','Coordinated Care','Complex / Multi-Specialty'])}</div>
+      <div class="field"><label>Health Literacy</label>${optionGroup('access_literacy_complexity_profile.literacy_profile.health_literacy',['Low','Moderate','High'])}</div>
+      <div class="field"><label>Digital Literacy</label>${optionGroup('access_literacy_complexity_profile.literacy_profile.digital_literacy',['Low','Moderate','High'])}</div>
+      <div class="field"><label>Reading Literacy</label>${optionGroup('access_literacy_complexity_profile.literacy_profile.reading_literacy',['Low','Moderate','High'])}</div>
+    `;
+  } else if(current === 4){
+    html = `
+      <h2>Barriers & Constraints</h2>
+      <p class="hint">What gets in the way for this persona?</p>
+      ${fieldHTML('access_literacy_complexity_profile.access_barriers.physical','Access Barriers \u2014 Physical', data.access_literacy_complexity_profile.access_barriers.physical, 'long-haul travel, jet lag, coordinating flights around appointment availability', 'textarea')}
+      ${fieldHTML('access_literacy_complexity_profile.access_barriers.non_physical','Access Barriers \u2014 Non-Physical', data.access_literacy_complexity_profile.access_barriers.non_physical, 'time zone differences, cross-border insurance coverage, translated records', 'textarea')}
+      ${fieldHTML('access_literacy_complexity_profile.resource_constraints','Resource Constraints', data.access_literacy_complexity_profile.resource_constraints, 'cost of international travel, limited paid time off, unfamiliarity with the U.S. health system', 'textarea')}
+    `;
+  } else if(current === 5){
+    html = `
+      <h2>Goals Related to Access & Complexity</h2>
+      <p class="hint">What would "better" look like specifically for the barriers above?</p>
+      ${dynamicList('access_literacy_complexity_profile.goals_related_to_access_and_complexity','e.g., Bundle all specialty visits into a single trip','accessGoalInput')}
+    `;
+  } else if(current === 6){
+    html = renderReview();
+  }
+
+  card.innerHTML = html;
+  renderNav();
+}
+
+function renderReview(){
+  const d = data;
+  const p = d.access_literacy_complexity_profile;
+  const idn = d.identity_snapshot;
+  return `
+    <h2>Review & Download</h2>
+    <p class="hint">Check the details below, then download the persona as JSON.</p>
+
+    <div class="review-section">
+      <h3>${escapeHtml(d.persona_name) || 'Persona Name'}</h3>
+      <p style="font-style:italic;color:var(--purple);margin:0 0 10px 0;">${escapeHtml(d.descriptor)}</p>
+      ${d.representative_quote ? `<div class="review-quote">\u201C${escapeHtml(d.representative_quote)}\u201D</div>` : ''}
+    </div>
+
+    <div class="review-section">
+      <h3>Goals & Motivations</h3>
+      ${d.goals_and_motivations.length ? '<ul class="chip-list">'+d.goals_and_motivations.map(g=>`<li>${escapeHtml(g)}</li>`).join('')+'</ul>' : '<p class="empty-note">None added.</p>'}
+    </div>
+
+    <div class="review-section">
+      <h3>Identity Snapshot</h3>
+      <div class="review-grid">
+        ${Object.entries(idn).map(([k,v])=>`<div class="review-item"><div class="k">${k.replace(/_/g,' ')}</div><div class="v">${escapeHtml(v)||'&mdash;'}</div></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="review-section">
+      <h3>Access, Literacy & Complexity</h3>
+      <div class="review-grid">
+        <div class="review-item"><div class="k">Digital Engagement</div><div class="v">${p.level_of_digital_engagement||'&mdash;'}</div></div>
+        <div class="review-item"><div class="k">Care Complexity</div><div class="v">${p.care_complexity||'&mdash;'}</div></div>
+        <div class="review-item"><div class="k">Health Literacy</div><div class="v">${p.literacy_profile.health_literacy||'&mdash;'}</div></div>
+        <div class="review-item"><div class="k">Digital Literacy</div><div class="v">${p.literacy_profile.digital_literacy||'&mdash;'}</div></div>
+        <div class="review-item"><div class="k">Reading Literacy</div><div class="v">${p.literacy_profile.reading_literacy||'&mdash;'}</div></div>
+      </div>
+    </div>
+
+    <div class="review-section">
+      <h3>Barriers & Constraints</h3>
+      <div class="review-item" style="margin-bottom:8px;"><div class="k">Physical</div><div class="v">${escapeHtml(p.access_barriers.physical)||'&mdash;'}</div></div>
+      <div class="review-item" style="margin-bottom:8px;"><div class="k">Non-Physical</div><div class="v">${escapeHtml(p.access_barriers.non_physical)||'&mdash;'}</div></div>
+      <div class="review-item"><div class="k">Resource Constraints</div><div class="v">${escapeHtml(p.resource_constraints)||'&mdash;'}</div></div>
+    </div>
+
+    <div class="review-section">
+      <h3>Goals Related to Access & Complexity</h3>
+      ${p.goals_related_to_access_and_complexity.length ? '<ul class="chip-list">'+p.goals_related_to_access_and_complexity.map(g=>`<li>${escapeHtml(g)}</li>`).join('')+'</ul>' : '<p class="empty-note">None added.</p>'}
+    </div>
+
+    <button type="button" class="download-btn" onclick="downloadJSON()">Download Persona JSON</button>
+    <span class="restart-link" onclick="restart()">Start over</span>
+  `;
+}
+
+function renderNav(){
+  const card = document.getElementById('cardArea');
+  if(current === 6) return; // review step has its own actions, no back/next row
+  const backDisabled = current === 0 ? 'disabled' : '';
+  const nextLabel = current === STEPS.length - 2 ? 'Review' : 'Next';
+  card.insertAdjacentHTML('beforeend', `
+    <div class="nav-row">
+      <button type="button" class="nav-btn btn-back" ${backDisabled} onclick="goBack()">Back</button>
+      <button type="button" class="nav-btn btn-next" onclick="goNext()">${nextLabel}</button>
+    </div>
+  `);
+}
+
+function goNext(){
+  if(current === 0 && !data.persona_name.trim()){
+    alert('Give the persona a name before continuing.');
+    return;
+  }
+  if(current < STEPS.length - 1){ current++; renderStep(); window.scrollTo(0,0); }
+}
+function goBack(){
+  if(current > 0){ current--; renderStep(); window.scrollTo(0,0); }
+}
+function restart(){
+  if(confirm('Clear all fields and start over?')){
+    location.reload();
+  }
+}
+
+function downloadJSON(){
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const safeName = (data.persona_name || 'persona').toLowerCase().replace(/[^a-z0-9]+/g,'_');
+  const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'_');
+  a.href = url;
+  a.download = `${dateStr}_Patient_Persona_${safeName}_v1.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+renderLanding();
+</script>
+</body>
+</html>
